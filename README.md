@@ -25,7 +25,7 @@ module.exports = mongoose.model('User', UserSchema);
 
 ## 3. Server code modified
 
-The file `src/server/index.js` has been modified to use Mongoose and the User model to manipulate the database.
+The file `src/server/index.js` has been modified to use Mongoose and the User model to manipulate the database. Key changes are highlighted below. All edits can be viewed in the [version history](https://github.com/IADT-AdvancedJS/mern-full-stack-mongoose/commit/ae50760a69136a8fc20f8e88f195045a732602f8#diff-6e0d62f54b853b53af874f5965d7adf2).
 
 ### Connect
 ```javascript
