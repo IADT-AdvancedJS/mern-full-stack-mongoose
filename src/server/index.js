@@ -3,6 +3,10 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const bodyParser = require('body-parser');
 
+// import Mongoose and the User model
+const mongoose = require('mongoose');
+const User = require('./models/User');
+
 const server = express();
 const dbname = 'MyMongoDB'; // change to match your database name
 
@@ -10,17 +14,16 @@ const dbname = 'MyMongoDB'; // change to match your database name
 server.use(express.static('dist'));
 
 // URL to our DB - will be loaded from an env variable or will use local DB
-const dbroute = process.env.MONGODB_URL || `mongodb://localhost:27017/${dbname}`;
+const mongo_uri = process.env.MONGODB_URL || `mongodb://localhost:27017/${dbname}`;
 
 let db;
 
-// connect to the db and start the express server
-MongoClient.connect(dbroute, (err, client) => {
-  if (err) throw err;
-
-  db = client.db(dbname);
-  // start the express web server listening
-  server.listen(process.env.PORT || 8080, () => console.log(`Listening on port ${process.env.PORT || 8080}!`));
+mongoose.connect(mongo_uri, { useNewUrlParser: true }, function(err) {
+  if (err) {
+    throw err;
+  } else {
+    console.log(`Successfully connected to ${mongo_uri}`);
+  }
 });
 
 // bodyParser, parses the request body to be a readable json format
@@ -31,7 +34,7 @@ server.use(bodyParser.json());
 
 // retrieve all user objects from DB
 server.get('/api/users', (req, res) => {
-  db.collection('users').find().toArray((err, result) => {
+  User.find({}, (err, result) => {
     if (err) throw err;
 
     console.log(result);
@@ -41,7 +44,7 @@ server.get('/api/users', (req, res) => {
 
 // retrieve user with specific ID from DB
 server.get('/api/users/:id', (req, res) => {
-  db.collection('users').findOne({_id: new ObjectID(req.params.id) }, (err, result) => {
+  User.findOne({_id: new ObjectID(req.params.id) }, (err, result) => {
     if (err) throw err;
 
     console.log(result);
@@ -51,7 +54,7 @@ server.get('/api/users/:id', (req, res) => {
 
 // delete user with specific ID from DB
 server.delete('/api/users', (req, res) => {
-  db.collection('users').deleteOne( {_id: new ObjectID(req.body.id) }, err => {
+  User.deleteOne( {_id: new ObjectID(req.body.id) }, err => {
     if (err) return res.send(err);
 
     console.log('deleted from database');
@@ -61,7 +64,10 @@ server.delete('/api/users', (req, res) => {
 
 // create new user based on info supplied in request body
 server.post('/api/users', (req, res) => {
-  db.collection('users').insertOne(req.body, (err, result) => {
+  // create a new user object using the Mongoose model and the data sent in the POST
+  const user = new User(req.body);
+  // save this object to the DB
+  user.save((err, result) => {
     if (err) throw err;
 
     console.log('created in database');
@@ -76,10 +82,12 @@ server.put('/api/users', (req, res) => {
   // remove the ID so as not to overwrite it when updating
   delete req.body._id;
   // find a user matching this ID and update their details
-  db.collection('users').updateOne( {_id: new ObjectID(id) }, {$set: req.body}, (err, result) => {
+  User.updateOne( {_id: new ObjectID(id) }, {$set: req.body}, (err, result) => {
     if (err) throw err;
 
     console.log('updated in database');
     return res.send({ success: true });
   });
 });
+
+server.listen(process.env.PORT || 8080, () => console.log(`Listening on port ${process.env.PORT || 8080}!`));
